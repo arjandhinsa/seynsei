@@ -24,13 +24,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware to allow frontend to talk to backend
+# CORS middleware to allow frontend to talk to backend.
+# allow_origins: web domains from env (exact match, comma-separated).
+# allow_origin_regex: native app shells (Capacitor iOS/Android) and local
+# dev servers, handled in code so env formatting can't silently break it.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+    allow_origin_regex=r"^(capacitor|ionic)://localhost$|^https?://localhost(:\d+)?$",
     allow_methods=["*"],
     allow_headers=["*"],
-)       
+)
 
 # Register routes — uncomment these as you build each one
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
