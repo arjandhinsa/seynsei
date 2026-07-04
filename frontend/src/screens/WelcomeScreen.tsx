@@ -11,7 +11,6 @@ import {
 } from '../components/PathQuestions'
 import {
   FOCUS_OPTIONS,
-  GOAL_OPTIONS,
   TRIGGER_OPTIONS,
   markWelcomed,
   readWelcome,
@@ -20,8 +19,8 @@ import {
 } from '../lib/personalization'
 import { getAccessToken } from '../api/client'
 
-// Steps: 0 intro · 1 focus · 2 triggers · 3 comfort · 4 goal · 5 closing
-const TOTAL_STEPS = 6
+// Steps: 0 intro · 1 focus · 2 triggers · 3 comfort · 4 closing
+const TOTAL_STEPS = 5
 
 export default function WelcomeScreen() {
   const navigate = useNavigate()
@@ -54,9 +53,9 @@ export default function WelcomeScreen() {
     markWelcomed()
     navigate('/auth/register')
   }
-  const finishToGuest = () => {
+  const finishToLogin = () => {
     markWelcomed()
-    navigate('/challenges')
+    navigate('/auth/login')
   }
   const skip = () => {
     // Skipping still counts as welcomed; keep whatever was answered so far.
@@ -172,25 +171,9 @@ export default function WelcomeScreen() {
           )}
 
           {step === 4 && (
-            <StepShell>
-              <QuestionHeading sub="The thing that would feel like a win.">
-                What are you <span className="display-italic">after</span>?
-              </QuestionHeading>
-              <SelectList
-                options={GOAL_OPTIONS}
-                value={answers.main_goal}
-                onChange={(v) => {
-                  update({ main_goal: v })
-                  window.setTimeout(goNext, 180)
-                }}
-              />
-            </StepShell>
-          )}
-
-          {step === 5 && (
             <ClosingStep
               onCreate={finishToRegister}
-              onBrowse={finishToGuest}
+              onSignIn={finishToLogin}
             />
           )}
         </div>
@@ -292,10 +275,10 @@ function IntroStep({ onBegin }: { onBegin: () => void }) {
 
 function ClosingStep({
   onCreate,
-  onBrowse,
+  onSignIn,
 }: {
   onCreate: () => void
-  onBrowse: () => void
+  onSignIn: () => void
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -320,8 +303,7 @@ function ClosingStep({
           margin: 0,
         }}
       >
-        Create an account to save your progress and start practising, or take
-        a look around first.
+        Create an account to save your progress and start practising.
       </p>
       <div
         style={{
@@ -335,7 +317,7 @@ function ClosingStep({
           Create my account
         </SoftButton>
         <button
-          onClick={onBrowse}
+          onClick={onSignIn}
           className="tap"
           style={{
             padding: '12px',
@@ -348,7 +330,7 @@ function ClosingStep({
             cursor: 'pointer',
           }}
         >
-          Just look around first
+          Already have an account? <span style={{ color: 'var(--gold-2)' }}>Sign in.</span>
         </button>
       </div>
     </div>

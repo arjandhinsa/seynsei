@@ -16,7 +16,6 @@ import {
 } from '../components/PathQuestions'
 import {
   FOCUS_OPTIONS,
-  GOAL_OPTIONS,
   TRIGGER_OPTIONS,
 } from '../lib/personalization'
 import {
@@ -31,7 +30,6 @@ import type {
   DashboardOverview,
   DomainSummary,
   FocusArea,
-  MainGoal,
   RecentCompletion,
   TriggerCode,
   UnlockedAchievement,
@@ -104,9 +102,6 @@ function PathSection({ me }: { me: UserResponse }) {
   const [comfort, setComfort] = useState<number | undefined>(
     me.comfort_level ?? undefined,
   )
-  const [goal, setGoal] = useState<MainGoal | undefined>(
-    me.main_goal ?? undefined,
-  )
   const [savedAt, setSavedAt] = useState<number | null>(null)
 
   // Re-sync from cache when the user record changes elsewhere.
@@ -114,12 +109,10 @@ function PathSection({ me }: { me: UserResponse }) {
     setFocus(me.focus_area ?? undefined)
     setTriggers(me.top_triggers ?? [])
     setComfort(me.comfort_level ?? undefined)
-    setGoal(me.main_goal ?? undefined)
-  }, [me.focus_area, me.top_triggers, me.comfort_level, me.main_goal])
+  }, [me.focus_area, me.top_triggers, me.comfort_level])
 
   const dirty =
     focus !== (me.focus_area ?? undefined) ||
-    goal !== (me.main_goal ?? undefined) ||
     comfort !== (me.comfort_level ?? undefined) ||
     !sameTriggers(triggers, me.top_triggers ?? [])
 
@@ -132,7 +125,6 @@ function PathSection({ me }: { me: UserResponse }) {
         focus_area: focus ?? null,
         top_triggers: triggers,
         comfort_level: comfort ?? null,
-        main_goal: goal ?? null,
       })
       setSavedAt(Date.now())
       window.setTimeout(() => setSavedAt(null), 2200)
@@ -183,10 +175,6 @@ function PathSection({ me }: { me: UserResponse }) {
 
         <PathField label="How at ease you feel">
           <ComfortScale value={comfort} onChange={setComfort} />
-        </PathField>
-
-        <PathField label="The win you're after">
-          <SelectList options={GOAL_OPTIONS} value={goal} onChange={setGoal} />
         </PathField>
       </div>
 
