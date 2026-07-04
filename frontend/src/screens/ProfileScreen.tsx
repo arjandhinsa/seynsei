@@ -1,23 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useOverview } from '../api/hooks/useProgress'
 import { useAchievementsCatalog } from '../api/hooks/useAchievements'
-import { useCurrentUser, useUpdateMe } from '../api/hooks/useAuth'
-import { ApiError } from '../api/client'
+import { useCurrentUser } from '../api/hooks/useAuth'
 import { displayNameFor, avatarInitial } from '../lib/displayName'
 import { SoftCard } from '../components/SoftCard'
-import { SoftError } from '../components/AuthLayout'
 import { BreathingLoader } from '../components/BreathingLoader'
-import { ChevronLeft, Cog } from '../components/icons'
-import {
-  ChipMultiSelect,
-  ComfortScale,
-  SelectList,
-} from '../components/PathQuestions'
-import {
-  FOCUS_OPTIONS,
-  TRIGGER_OPTIONS,
-} from '../lib/personalization'
+import { ChevronLeft, ChevronRight, Cog } from '../components/icons'
 import {
   ArcProgress,
   LevelDisc,
@@ -29,11 +18,8 @@ import type {
   AchievementCatalogEntry,
   DashboardOverview,
   DomainSummary,
-  FocusArea,
   RecentCompletion,
-  TriggerCode,
   UnlockedAchievement,
-  UserResponse,
 } from '../api/types'
 
 const DOMAIN_ACCENT: Record<string, string> = {
@@ -44,7 +30,6 @@ const DOMAIN_ACCENT: Record<string, string> = {
 export default function ProfileScreen() {
   const overview = useOverview()
   const catalog = useAchievementsCatalog()
-  const me = useCurrentUser()
 
   return (
     <div className="paper" style={{ minHeight: '100vh', color: 'var(--ink)' }}>
@@ -78,7 +63,7 @@ export default function ProfileScreen() {
               catalogError={catalog.isError}
             />
             <RecentPractice completions={overview.data.recent_completions} />
-            {me.data && <PathSection me={me.data} />}
+            <PathLink />
           </>
         )}
       </div>
@@ -87,173 +72,45 @@ export default function ProfileScreen() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Your path — editable personalization answers. Quiet by default: the
-// user returns here manually to change them.
+// Your path — quiet link card. The editor lives on its own screen so
+// Profile stays a clean mirror of progress.
 // ─────────────────────────────────────────────────────────────────────
-function PathSection({ me }: { me: UserResponse }) {
-  const updateMe = useUpdateMe()
-
-  const [focus, setFocus] = useState<FocusArea | undefined>(
-    me.focus_area ?? undefined,
-  )
-  const [triggers, setTriggers] = useState<TriggerCode[]>(
-    me.top_triggers ?? [],
-  )
-  const [comfort, setComfort] = useState<number | undefined>(
-    me.comfort_level ?? undefined,
-  )
-  const [savedAt, setSavedAt] = useState<number | null>(null)
-
-  // Re-sync from cache when the user record changes elsewhere.
-  useEffect(() => {
-    setFocus(me.focus_area ?? undefined)
-    setTriggers(me.top_triggers ?? [])
-    setComfort(me.comfort_level ?? undefined)
-  }, [me.focus_area, me.top_triggers, me.comfort_level])
-
-  const dirty =
-    focus !== (me.focus_area ?? undefined) ||
-    comfort !== (me.comfort_level ?? undefined) ||
-    !sameTriggers(triggers, me.top_triggers ?? [])
-
-  const canSave = dirty && !updateMe.isPending
-
-  const onSave = async () => {
-    if (!canSave) return
-    try {
-      await updateMe.mutateAsync({
-        focus_area: focus ?? null,
-        top_triggers: triggers,
-        comfort_level: comfort ?? null,
-      })
-      setSavedAt(Date.now())
-      window.setTimeout(() => setSavedAt(null), 2200)
-    } catch {
-      // surfaced via updateMe.isError
-    }
-  }
-
-  const errorMessage = updateMe.isError
-    ? updateMe.error instanceof ApiError
-      ? updateMe.error.detail
-      : 'Could not save right now.'
-    : null
-
+function PathLink() {
   return (
-    <section style={{ marginTop: 8, marginBottom: 24 }}>
-      <div
-        className="display"
-        style={{ fontSize: 17, color: 'var(--ink)', marginBottom: 6 }}
-      >
-        Your path
-      </div>
-      <p
+    <Link to="/path" style={{ textDecoration: 'none' }}>
+      <SoftCard
+        className="tap"
         style={{
-          fontFamily: 'var(--body)',
-          fontSize: 12.5,
-          color: 'var(--ink-3)',
-          lineHeight: 1.5,
-          marginTop: 0,
-          marginBottom: 18,
-        }}
-      >
-        Shape how Sensei coaches you. Change these anytime.
-      </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <PathField label="Where you want to grow">
-          <SelectList options={FOCUS_OPTIONS} value={focus} onChange={setFocus} />
-        </PathField>
-
-        <PathField label="Moments that feel hardest">
-          <ChipMultiSelect
-            options={TRIGGER_OPTIONS}
-            value={triggers}
-            onChange={setTriggers}
-          />
-        </PathField>
-
-        <PathField label="How at ease you feel">
-          <ComfortScale value={comfort} onChange={setComfort} />
-        </PathField>
-      </div>
-
-      {errorMessage && (
-        <div style={{ marginTop: 16 }}>
-          <SoftError message={errorMessage} />
-        </div>
-      )}
-
-      <div
-        style={{
+          marginTop: 8,
+          marginBottom: 24,
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
-          marginTop: 18,
+          justifyContent: 'space-between',
+          gap: 12,
         }}
       >
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!canSave}
-          className="tap"
-          style={{
-            padding: '12px 22px',
-            borderRadius: 'var(--r-pill)',
-            border: '1px solid oklch(from var(--gold) l c h / 0.55)',
-            background: canSave
-              ? 'linear-gradient(180deg, oklch(from var(--gold) calc(l - 0.18) c h) 0%, oklch(from var(--gold) calc(l - 0.32) c h) 100%)'
-              : 'transparent',
-            color: canSave ? 'var(--ink)' : 'var(--ink-3)',
-            fontFamily: 'var(--display)',
-            fontStyle: 'italic',
-            fontSize: 14,
-            cursor: canSave ? 'pointer' : 'not-allowed',
-            opacity: canSave ? 1 : 0.55,
-          }}
-        >
-          {updateMe.isPending ? 'Saving…' : 'Save path'}
-        </button>
-        {savedAt && (
-          <span
-            key={savedAt}
-            className="fade-up"
+        <div>
+          <div
+            className="display"
+            style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 3 }}
+          >
+            Your path
+          </div>
+          <div
             style={{
-              fontFamily: 'var(--display)',
-              fontStyle: 'italic',
+              fontFamily: 'var(--body)',
               fontSize: 12.5,
-              color: 'var(--gold-2)',
+              color: 'var(--ink-3)',
+              lineHeight: 1.5,
             }}
           >
-            Saved.
-          </span>
-        )}
-      </div>
-    </section>
+            What you told us about where you're growing. Edit anytime.
+          </div>
+        </div>
+        <ChevronRight size={13} color="var(--ink-3)" />
+      </SoftCard>
+    </Link>
   )
-}
-
-function PathField({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <div className="label" style={{ marginBottom: 10, color: 'var(--ink-2)' }}>
-        {label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function sameTriggers(a: TriggerCode[], b: TriggerCode[]): boolean {
-  if (a.length !== b.length) return false
-  const setB = new Set(b)
-  return a.every((c) => setB.has(c))
 }
 
 // ─────────────────────────────────────────────────────────────────────

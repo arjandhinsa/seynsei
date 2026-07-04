@@ -15,6 +15,7 @@ import ChallengeCompleteScreen from './screens/ChallengeCompleteScreen'
 import CelebrationScreen from './screens/CelebrationScreen'
 import SenseiChatScreen from './screens/SenseiChatScreen'
 import ProfileScreen from './screens/ProfileScreen'
+import PathScreen from './screens/PathScreen'
 import SettingsScreen from './screens/SettingsScreen'
 
 const ONBOARDED_KEY = 'seynsei.onboarded'
@@ -83,6 +84,7 @@ function App() {
           <Route path="/celebration" element={<CelebrationScreen />} />
           <Route path="/sensei" element={<SenseiChatScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
+          <Route path="/path" element={<PathScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
         </Route>
       </Route>
