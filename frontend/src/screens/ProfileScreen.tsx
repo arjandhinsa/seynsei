@@ -160,7 +160,7 @@ function Header() {
           letterSpacing: '-0.005em',
         }}
       >
-        Your <span className="display-italic">path</span>.
+        Your <span className="display-italic">profile</span>.
       </h1>
     </div>
   )
@@ -256,7 +256,7 @@ function LevelCard({ overview }: { overview: DashboardOverview }) {
       >
         <LevelDisc level={overview.current_level} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="label">your path</div>
+          <div className="label">your stage</div>
           <div
             className="display"
             style={{
