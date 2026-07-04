@@ -57,6 +57,7 @@ export interface UserResponse {
   comfort_level: number | null
   main_goal: MainGoal | null
   onboarding_completed: boolean
+  is_premium: boolean
 }
 
 export type Domain = 'social' | 'dating'

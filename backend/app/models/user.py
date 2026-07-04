@@ -65,6 +65,15 @@ class User(Base):
         nullable=False,
     )  # true once the user has supplied any personalization data
 
+    # Premium entitlement. Set by the payments integration (App Store /
+    # Stripe webhook) — never by the client directly. Premium removes the
+    # daily Sensei message cap.
+    is_premium: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
     # --- gamification fields ---
     total_xp: Mapped[int] = mapped_column(
         Integer,

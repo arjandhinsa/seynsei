@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
+    # Free tier: Sensei replies per user per UTC day. Premium users are
+    # unlimited. Tune from the environment without a deploy.
+    FREE_DAILY_SENSEI_MESSAGES: int = 10
+
     # App
     APP_NAME: str = "Seynse"
     APP_ENV: str = "development"

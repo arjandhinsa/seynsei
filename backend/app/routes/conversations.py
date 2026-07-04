@@ -3,10 +3,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
+from app.config import settings
 from app.database import get_db
 from app.models import (
     Achievement,
@@ -76,7 +77,53 @@ class RecentConversationResponse(BaseModel):
     conversation_id: str | None
 
 
+class SenseiQuotaResponse(BaseModel):
+    """Free-tier state for the chat UI. Premium users get limit = None."""
+    is_premium: bool
+    limit: int | None
+    used_today: int
+    remaining: int | None
+
+
 # --- Helpers ---
+
+
+async def _sensei_replies_today(user_id: str, db: AsyncSession) -> int:
+    """Count coach replies generated for this user since UTC midnight.
+
+    Each OpenAI call produces exactly one assistant message, so counting
+    assistant messages is counting cost.
+    """
+    day_start = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    result = await db.execute(
+        select(func.count(Message.id))
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .where(
+            Conversation.user_id == user_id,
+            Message.role == "assistant",
+            Message.created_at >= day_start,
+        )
+    )
+    return result.scalar() or 0
+
+
+async def _enforce_sensei_quota(user_id: str, db: AsyncSession) -> None:
+    """Raise 429 when a free user has used today's Sensei replies."""
+    user = await db.get(User, user_id)
+    if user and user.is_premium:
+        return
+    used = await _sensei_replies_today(user_id, db)
+    if used >= settings.FREE_DAILY_SENSEI_MESSAGES:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "You've used today's free Sensei messages. They refresh "
+                "tomorrow. Until then, the challenges are all yours."
+            ),
+        )
+
 
 def _challenge_to_dict(challenge: Challenge) -> dict:
     return {
@@ -188,6 +235,8 @@ async def start_conversation(
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _enforce_sensei_quota(user_id, db)
+
     challenge: Challenge | None = None
     reflection_context: dict | None = None
 
@@ -299,6 +348,8 @@ async def send_message(
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _enforce_sensei_quota(user_id, db)
+
     result = await db.execute(
         select(Conversation)
         .where(Conversation.id == conversation_id, Conversation.user_id == user_id)
@@ -355,6 +406,27 @@ async def send_message(
     await db.refresh(coach_msg)
 
     return _msg_to_response(coach_msg)
+
+
+@router.get("/quota", response_model=SenseiQuotaResponse)
+async def get_sensei_quota(
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Free-tier chat state, so the UI can show what's left today."""
+    user = await db.get(User, user_id)
+    used = await _sensei_replies_today(user_id, db)
+    if user and user.is_premium:
+        return SenseiQuotaResponse(
+            is_premium=True, limit=None, used_today=used, remaining=None
+        )
+    limit = settings.FREE_DAILY_SENSEI_MESSAGES
+    return SenseiQuotaResponse(
+        is_premium=False,
+        limit=limit,
+        used_today=used,
+        remaining=max(0, limit - used),
+    )
 
 
 @router.get("/recent", response_model=RecentConversationResponse)

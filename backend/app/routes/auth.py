@@ -86,6 +86,7 @@ class UserResponse(BaseModel):
     comfort_level: int | None
     main_goal: str | None
     onboarding_completed: bool
+    is_premium: bool = False
 
 
 def _user_response(user: User) -> UserResponse:
@@ -100,6 +101,7 @@ def _user_response(user: User) -> UserResponse:
         comfort_level=user.comfort_level,
         main_goal=user.main_goal,
         onboarding_completed=user.onboarding_completed,
+        is_premium=user.is_premium,
     )
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
