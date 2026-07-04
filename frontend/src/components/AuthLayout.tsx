@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Wordmark } from './Wordmark'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -31,12 +32,7 @@ export function AuthLayout({ children, showWordmark = true }: AuthLayoutProps) {
       >
         {showWordmark && (
           <header style={{ textAlign: 'center', marginBottom: 56 }}>
-            <div
-              className="display"
-              style={{ fontSize: 42, lineHeight: 1, letterSpacing: '-0.01em' }}
-            >
-              Seynsei
-            </div>
+            <Wordmark size={38} />
             <div
               className="body"
               style={{

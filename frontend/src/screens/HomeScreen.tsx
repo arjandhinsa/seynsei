@@ -10,6 +10,7 @@ import {
 import { SoftCard } from '../components/SoftCard'
 import { BreathingLoader } from '../components/BreathingLoader'
 import { ChevronRight } from '../components/icons'
+import { Wordmark } from '../components/Wordmark'
 import { useCurrentUser, useLogout } from '../api/hooks/useAuth'
 import { displayNameFor, avatarInitial } from '../lib/displayName'
 import { useOverview, useRecommendation } from '../api/hooks/useProgress'
@@ -94,9 +95,7 @@ function TopBar({ overview }: { overview: DashboardOverview | undefined }) {
       }}
     >
       <div>
-        <div className="display" style={{ fontSize: 22, lineHeight: 1, letterSpacing: '-0.005em' }}>
-          Seynsei
-        </div>
+        <Wordmark size={22} />
         <div
           className="body"
           style={{

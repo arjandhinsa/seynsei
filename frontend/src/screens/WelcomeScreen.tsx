@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { SoftButton } from '../components/SoftButton'
 import { ChevronLeft } from '../components/icons'
+import { Wordmark } from '../components/Wordmark'
 import {
   ChipMultiSelect,
   ComfortScale,
@@ -236,18 +237,7 @@ function ContinueRow({ onNext }: { onNext: () => void }) {
 function IntroStep({ onBegin }: { onBegin: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <img
-        src="/seynsei-mark-white.svg"
-        alt=""
-        aria-hidden="true"
-        style={{ width: 44, height: 44, opacity: 0.9 }}
-      />
-      <div
-        className="display"
-        style={{ fontSize: 40, lineHeight: 1, letterSpacing: '-0.01em' }}
-      >
-        Seynsei
-      </div>
+      <Wordmark size={34} />
       <h1
         className="display"
         style={{
