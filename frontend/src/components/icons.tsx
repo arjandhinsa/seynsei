@@ -45,6 +45,29 @@ export function Cog({ size = 16, color = 'currentColor' }: IconProps) {
   )
 }
 
+export function Lock({ size = 16, color = 'currentColor' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect
+        x="3"
+        y="7"
+        width="10"
+        height="7"
+        rx="2"
+        stroke={color}
+        strokeWidth="1.2"
+      />
+      <path
+        d="M5.2 7 V 5.2 C 5.2 3.4, 6.5 2.2, 8 2.2 C 9.5 2.2, 10.8 3.4, 10.8 5.2 V 7"
+        stroke={color}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <circle cx="8" cy="10.4" r="1" fill={color} />
+    </svg>
+  )
+}
+
 export function Lightbulb({ size = 14, color = 'currentColor' }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none">

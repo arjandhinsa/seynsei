@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.models import Challenge, ChallengeCompletion, User
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_user, get_current_user_optional
 from app.services.completion import record_completion
 
 
@@ -88,10 +88,16 @@ async def list_challenges(
     domain: Literal["social", "dating"] | None = Query(None, description="Filter by domain"),
     tier: int | None = Query(None, ge=1, le=5, description="Filter by tier 1–5"),
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user),
+    user_id: str | None = Depends(get_current_user_optional),
 ):
     """List all challenges, optionally filtered by domain and/or tier.
     Ordered by domain → tier → sort_order for a stable display sequence.
+
+    Public: works without auth so guests can browse the catalogue. The
+    response carries no user-specific data (no completion counts or
+    is_completed flags), so an anonymous caller sees the full catalogue
+    exactly as a logged-in one does. user_id is accepted for future
+    per-user enrichment but is currently unused here.
     """
     query = select(Challenge).order_by(Challenge.domain, Challenge.tier, Challenge.sort_order)
 

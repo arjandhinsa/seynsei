@@ -128,6 +128,14 @@ async def recommend_next(user: User, session: AsyncSession) -> Recommendation | 
         # (Social wins ties because it comes first in the tuple).
         target_domain = min(DOMAIN_PRIORITY, key=lambda d: domain_counts[d])
 
+        # --- Profile bias (gentle): prefer the user's stated focus area.
+        # This NEVER overrides the dating gate — we're already past it here
+        # (dating_unlocked is True). "both" applies no bias. A focus of
+        # "dating" only takes effect now that the gate has opened.
+        focus = getattr(user, "focus_area", None)
+        if focus in ("social", "dating"):
+            target_domain = focus
+
     # --- Rule 4: tier = max completed in target domain, or 1 if untouched ---
     max_tier = (await session.execute(
         select(func.max(Challenge.tier))
@@ -138,6 +146,16 @@ async def recommend_next(user: User, session: AsyncSession) -> Recommendation | 
         )
     )).scalar()
     target_tier = max_tier or 1
+
+    # --- Profile bias (gentle): low self-rated comfort -> stay lower.
+    # If the user rates their comfort <= 2, prefer the lower of the eligible
+    # tiers (the floor of 1 .. their current max) so we don't push them into
+    # the top of what they've unlocked. Never raises the tier, only lowers it,
+    # so this can't jump the user ahead of their earned progression.
+    comfort = getattr(user, "comfort_level", None)
+    low_comfort_bias = isinstance(comfort, int) and comfort <= 2
+    if low_comfort_bias and target_tier > 1:
+        target_tier = 1
 
     # --- Rule 5: candidates at that domain+tier, ranked by completion count ---
     candidates = (await session.execute(
@@ -169,7 +187,14 @@ async def recommend_next(user: User, session: AsyncSession) -> Recommendation | 
         name=best.name,
         domain=best.domain,
         tier=best.tier,
-        reason=_build_reason(target_domain, target_tier, domain_counts, dating_unlocked),
+        reason=_build_reason(
+            target_domain,
+            target_tier,
+            domain_counts,
+            dating_unlocked,
+            focus_bias=getattr(user, "focus_area", None) in ("social", "dating"),
+            low_comfort_bias=low_comfort_bias,
+        ),
     )
     return await _log_and_return(session, user.id, rec)
 
@@ -205,13 +230,30 @@ def _build_reason(
     target_tier: int,
     domain_counts: dict[str, int],
     dating_unlocked: bool,
+    focus_bias: bool = False,
+    low_comfort_bias: bool = False,
 ) -> str:
-    """Generate the user-facing explanation for the recommendation."""
+    """Generate the user-facing explanation for the recommendation.
+
+    focus_bias / low_comfort_bias annotate the reason when a profile-driven
+    nudge shaped the pick — they never change the clinical gating, only the
+    wording, so the recommendation stays explainable.
+    """
     target_name = DOMAIN_DISPLAY[target_domain]
+
+    # Low-comfort nudge takes narrative priority — it's the gentlest signal.
+    if low_comfort_bias:
+        return (
+            f"Let's keep it manageable with a Tier {target_tier} {target_name} "
+            "challenge while your comfort builds."
+        )
 
     # Early-Social bias active — be honest about why we're staying in Social
     if target_domain == "social" and not dating_unlocked:
         return "Stay close to Social for now. Let it become familiar."
+
+    if focus_bias:
+        return f"Leaning into your focus on {target_name} with a Tier {target_tier} challenge."
 
     other = "dating" if target_domain == "social" else "social"
     if domain_counts[target_domain] < domain_counts[other]:

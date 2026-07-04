@@ -10,6 +10,7 @@ import {
 import { ChevronLeft } from '../components/icons'
 import { ApiError, apiFetch } from '../api/client'
 import { SoftError } from '../components/AuthLayout'
+import { BreathingLoader } from '../components/BreathingLoader'
 import type { ChatMessage, ConversationDetailResponse } from '../api/types'
 
 // Quick replies — always visible above the input. Three sets keyed to entry
@@ -246,7 +247,13 @@ export default function SenseiChatScreen() {
         }}
       >
         {loadingInit && (
-          initOpenAIPending ? <SenseiThinkingPill /> : <FullLoader />
+          initOpenAIPending ? (
+            <SenseiThinkingPill />
+          ) : (
+            <div style={{ minHeight: 320 }}>
+              <BreathingLoader fullScreen={false} />
+            </div>
+          )
         )}
 
         {showEmptyState && <EmptyState />}
@@ -545,25 +552,6 @@ function EmptyState() {
       >
         What's on your mind?
       </div>
-    </div>
-  )
-}
-
-function FullLoader() {
-  return (
-    <div
-      style={{
-        minHeight: 320,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-2)',
-        fontFamily: 'var(--display)',
-        fontStyle: 'italic',
-        fontSize: 28,
-      }}
-    >
-      <span className="breathe">…</span>
     </div>
   )
 }

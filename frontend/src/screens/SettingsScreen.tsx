@@ -11,6 +11,7 @@ import { SoftCard } from '../components/SoftCard'
 import { SoftError } from '../components/AuthLayout'
 import { SoftButton } from '../components/SoftButton'
 import { SoftInput } from '../components/SoftInput'
+import { BreathingLoader } from '../components/BreathingLoader'
 import { ChevronLeft } from '../components/icons'
 
 const APP_VERSION =
@@ -36,7 +37,7 @@ export default function SettingsScreen() {
             displayName={me.data.display_name ?? ''}
           />
         ) : (
-          <Skeleton />
+          <BreathingLoader fullScreen={false} />
         )}
         <Footer />
       </div>
@@ -483,22 +484,3 @@ function SectionLabel({
   )
 }
 
-function Skeleton() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {[80, 130, 90].map((h, i) => (
-        <div
-          key={i}
-          className="breathe"
-          style={{
-            background: 'var(--bg-2)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--r-md)',
-            height: h,
-            opacity: 0.55,
-          }}
-        />
-      ))}
-    </div>
-  )
-}

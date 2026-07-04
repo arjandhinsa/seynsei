@@ -383,7 +383,7 @@ function StreakCallout({ days }: { days: number }) {
         lineHeight: 1.5,
       }}
     >
-      {days} day streak — your new best
+      {days} day streak. Your new best
     </div>
   )
 }

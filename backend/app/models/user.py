@@ -1,7 +1,7 @@
 import uuid #generates unqiqe ids
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, Boolean, Integer, Date
+from sqlalchemy import String, DateTime, Boolean, Integer, Date, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -37,6 +37,33 @@ class User(Base):
         Boolean,
         default=True,
     ) #indicates if the user account is active
+
+    # --- personalization / onboarding fields (additive, nullable) ---
+    focus_area: Mapped[str] = mapped_column(
+        String(20),
+        nullable=True,
+    )  # "social" | "dating" | "both"
+
+    top_triggers: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
+    )  # JSON-encoded array of trigger codes
+
+    comfort_level: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+    )  # 1..5 self-rated social comfort
+
+    main_goal: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+    )  # "make_friends" | "confidence" | "dating" | "speak_up" | "less_avoidance"
+
+    onboarding_completed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )  # true once the user has supplied any personalization data
 
     # --- gamification fields ---
     total_xp: Mapped[int] = mapped_column(

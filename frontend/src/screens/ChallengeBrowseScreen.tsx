@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useChallenges, useCompletions } from '../api/hooks/useChallenges'
 import { useRecommendation } from '../api/hooks/useProgress'
+import { isAuthed } from '../api/client'
 import { SoftCard } from '../components/SoftCard'
+import { BreathingLoader } from '../components/BreathingLoader'
 import { ChevronLeft, ChevronRight } from '../components/icons'
 import { TierDot, tierColor } from '../components/progress'
 import type { Challenge, Completion, Domain, Recommendation } from '../api/types'
@@ -16,6 +18,7 @@ export default function ChallengeBrowseScreen() {
   const [params, setParams] = useSearchParams()
   const rawDomain = params.get('domain')
   const activeDomain: Domain = rawDomain === 'dating' ? 'dating' : 'social'
+  const authed = isAuthed()
 
   const challenges = useChallenges({ domain: activeDomain })
   const completions = useCompletions()
@@ -45,7 +48,11 @@ export default function ChallengeBrowseScreen() {
           padding: '24px 22px 64px',
         }}
       >
-        <BackArrow to="/home" />
+        {authed ? (
+          <BackArrow to="/home" />
+        ) : (
+          <GuestBanner />
+        )}
 
         <div style={{ marginTop: 22 }}>
           <div className="label">practice</div>
@@ -80,7 +87,9 @@ export default function ChallengeBrowseScreen() {
         )}
 
         <div style={{ marginTop: 18 }}>
-          {challenges.isLoading && <BrowseSkeletons />}
+          {challenges.isLoading && (
+            <BreathingLoader fullScreen={false} />
+          )}
           {challenges.isError && (
             <ErrorBlock onRetry={() => challenges.refetch()} />
           )}
@@ -107,6 +116,78 @@ export default function ChallengeBrowseScreen() {
 // ─────────────────────────────────────────────────────────────────────
 // Pieces
 // ─────────────────────────────────────────────────────────────────────
+function GuestBanner() {
+  return (
+    <SoftCard
+      padding={16}
+      radius="var(--r-lg)"
+      style={{
+        borderColor: 'oklch(from var(--gold) l c h / 0.30)',
+        background:
+          'linear-gradient(160deg, oklch(from var(--gold) calc(l - 0.45) calc(c - 0.03) h / 0.22) 0%, var(--bg-2) 75%)',
+      }}
+    >
+      <div
+        className="display-italic"
+        style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.35 }}
+      >
+        You're browsing as a guest
+      </div>
+      <div
+        style={{
+          fontFamily: 'var(--body)',
+          fontSize: 12.5,
+          color: 'var(--ink-2)',
+          marginTop: 5,
+          lineHeight: 1.5,
+        }}
+      >
+        Create an account to start practising and save your progress.
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          marginTop: 14,
+        }}
+      >
+        <Link
+          to="/auth/register"
+          className="tap"
+          style={{
+            padding: '9px 18px',
+            borderRadius: 'var(--r-pill)',
+            background:
+              'linear-gradient(180deg, oklch(from var(--gold) calc(l - 0.18) c h) 0%, oklch(from var(--gold) calc(l - 0.32) c h) 100%)',
+            border: '1px solid oklch(from var(--gold) l c h / 0.55)',
+            color: 'var(--ink)',
+            fontFamily: 'var(--display)',
+            fontSize: 13.5,
+            textDecoration: 'none',
+            boxShadow: '0 0 20px oklch(from var(--gold) l c h / 0.2)',
+          }}
+        >
+          Create account
+        </Link>
+        <Link
+          to="/auth/login"
+          className="tap"
+          style={{
+            fontFamily: 'var(--display)',
+            fontStyle: 'italic',
+            fontSize: 13.5,
+            color: 'var(--ink-3)',
+            textDecoration: 'none',
+          }}
+        >
+          Sign in
+        </Link>
+      </div>
+    </SoftCard>
+  )
+}
+
 function BackArrow({ to }: { to: string }) {
   return (
     <Link
@@ -361,27 +442,6 @@ function XPPill({ amount, accent }: { amount: number; accent: string }) {
   )
 }
 
-function BrowseSkeletons() {
-  const rows = [0, 1, 2, 3, 4]
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {rows.map((i) => (
-        <div
-          key={i}
-          className="breathe"
-          style={{
-            background: 'var(--bg-2)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--r-md)',
-            height: 92,
-            opacity: 0.55,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
   return (
     <SoftCard padding={20} radius="var(--r-lg)">
@@ -394,7 +454,7 @@ function ErrorBlock({ onRetry }: { onRetry: () => void }) {
           marginBottom: 14,
         }}
       >
-        Couldn't load challenges right now.
+        Something didn't load. Pull a slow breath and try again.
       </div>
       <button
         onClick={onRetry}

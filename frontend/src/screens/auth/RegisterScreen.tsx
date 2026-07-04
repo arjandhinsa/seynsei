@@ -6,6 +6,7 @@ import { ApiError } from '../../api/client'
 import { AuthLayout, SoftError } from '../../components/AuthLayout'
 import { SoftButton } from '../../components/SoftButton'
 import { SoftInput } from '../../components/SoftInput'
+import { clearWelcome, readWelcome } from '../../lib/personalization'
 
 export default function RegisterScreen() {
   const navigate = useNavigate()
@@ -15,9 +16,24 @@ export default function RegisterScreen() {
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // Fold in the welcome-flow answers (if any) so the new account is
+    // personalized from the first request.
+    const welcome = readWelcome()
     register.mutate(
-      { email: email.trim(), password },
-      { onSuccess: () => navigate('/onboarding', { replace: true }) },
+      {
+        email: email.trim(),
+        password,
+        focus_area: welcome?.focus_area ?? null,
+        top_triggers: welcome?.top_triggers ?? null,
+        comfort_level: welcome?.comfort_level ?? null,
+        main_goal: welcome?.main_goal ?? null,
+      },
+      {
+        onSuccess: () => {
+          clearWelcome()
+          navigate('/onboarding', { replace: true })
+        },
+      },
     )
   }
 

@@ -22,10 +22,11 @@ function buildPath(opts?: ChallengeFilter): string {
 }
 
 export function useChallenges(opts?: ChallengeFilter) {
+  // Catalog is public — GET /challenges works without auth (user-specific
+  // fields are simply absent/defaulted for guests), so no `enabled` gate.
   return useQuery<Challenge[]>({
     queryKey: ['challenges', { domain: opts?.domain ?? null, tier: opts?.tier ?? null }],
     queryFn: () => apiFetch<Challenge[]>(buildPath(opts)),
-    enabled: getAccessToken() !== null,
     staleTime: 1000 * 60 * 5,
   })
 }

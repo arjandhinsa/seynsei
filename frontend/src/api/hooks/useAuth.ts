@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, clearTokens, getAccessToken, setTokens } from '../client'
 import type {
+  FocusArea,
   LoginRequest,
+  MainGoal,
   RegisterRequest,
   TokenResponse,
+  TriggerCode,
   UserResponse,
 } from '../types'
 
@@ -59,6 +62,11 @@ export function useLogout(): () => void {
 export interface UpdateMeRequest {
   display_name?: string | null
   equipped_avatar_id?: string | null
+  focus_area?: FocusArea | null
+  top_triggers?: TriggerCode[] | null
+  comfort_level?: number | null
+  main_goal?: MainGoal | null
+  onboarding_completed?: boolean
 }
 
 // DELETE /api/auth/me — hard-deletes the current user. Backend cascades

@@ -101,6 +101,7 @@ function Wizard({ challengeId }: { challengeId: string }) {
         {step === 3 && (
           <StepAfter
             key="step-3"
+            before={before}
             value={after}
             onChange={setAfter}
             notes={notes}
@@ -194,10 +195,23 @@ function StepBefore({
             lineHeight: 1.5,
           }}
         >
-          How anxious are you right now?
+          How anxious does doing this make you feel right now? 1 is barely
+          a flicker, 10 is the most anxious you get.
         </p>
       </header>
       <SudsSlider value={value} onChange={onChange} />
+      <p
+        style={{
+          fontFamily: 'var(--body)',
+          fontSize: 13,
+          color: 'var(--ink-3)',
+          margin: 0,
+          lineHeight: 1.55,
+        }}
+      >
+        You'll rate again straight after, so you can see the two numbers
+        side by side.
+      </p>
       <SoftButton
         primary
         onClick={onContinue}
@@ -274,7 +288,8 @@ function StepDoIt({
             lineHeight: 1.5,
           }}
         >
-          Do the challenge in real life. When you genuinely have, tap below.
+          Put the phone away and do it for real. Come straight back and
+          rate while it's fresh.
         </p>
       </header>
 
@@ -339,6 +354,7 @@ function StepDoIt({
 // Step 3 — After SUDS + notes
 // ─────────────────────────────────────────────────────────────────────
 function StepAfter({
+  before,
   value,
   onChange,
   notes,
@@ -347,6 +363,7 @@ function StepAfter({
   saving,
   errorMessage,
 }: {
+  before: number
   value: number
   onChange: (v: number) => void
   notes: string
@@ -370,7 +387,7 @@ function StepAfter({
             letterSpacing: '-0.005em',
           }}
         >
-          How does it feel?
+          And now?
         </h1>
         <p
           style={{
@@ -381,7 +398,8 @@ function StepAfter({
             lineHeight: 1.5,
           }}
         >
-          Rate your anxiety now.
+          Now that it's done, how anxious do you feel right now? Not about
+          doing it again, just in this moment. You went in at {before}.
         </p>
       </header>
 

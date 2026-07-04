@@ -69,11 +69,69 @@ def _user_progress_section(uc: dict) -> str:
     return f"\n\nUser context: Level {level}, {streak}-day streak."
 
 
+# Human-readable phrases for the trigger codes stored on the user.
+_TRIGGER_PHRASES = {
+    "strangers": "talking to strangers",
+    "groups": "being in groups",
+    "authority": "authority figures",
+    "phone_calls": "phone calls",
+    "dating": "dating situations",
+    "being_watched": "being watched",
+    "speaking_up": "speaking up",
+}
+
+_FOCUS_PHRASES = {
+    "social": "social confidence",
+    "dating": "dating confidence",
+    "both": "both social and dating confidence",
+}
+
+_GOAL_PHRASES = {
+    "make_friends": "making friends",
+    "confidence": "building general confidence",
+    "dating": "getting more comfortable with dating",
+    "speak_up": "speaking up more",
+    "less_avoidance": "avoiding less",
+}
+
+
+def _profile_section(pc: dict) -> str:
+    """Concise profile context so the coach can tailor its tone. Only emits
+    the pieces that are actually present; returns "" when nothing is set."""
+    bits: list[str] = []
+
+    focus = pc.get("focus_area")
+    if focus in _FOCUS_PHRASES:
+        bits.append(f"they're focused on {_FOCUS_PHRASES[focus]}")
+
+    triggers = pc.get("top_triggers") or []
+    phrases = [_TRIGGER_PHRASES[t] for t in triggers if t in _TRIGGER_PHRASES]
+    if phrases:
+        if len(phrases) == 1:
+            bits.append(f"{phrases[0]} tends to trigger them")
+        else:
+            bits.append(", ".join(phrases[:-1]) + f" and {phrases[-1]} trigger them most")
+
+    comfort = pc.get("comfort_level")
+    if isinstance(comfort, int):
+        bits.append(f"they rate their social comfort {comfort}/5")
+
+    goal = pc.get("main_goal")
+    if goal in _GOAL_PHRASES:
+        bits.append(f"their goal is {_GOAL_PHRASES[goal]}")
+
+    if not bits:
+        return ""
+
+    return "\n\nProfile context (for tailoring, don't recite): " + "; ".join(bits) + "."
+
+
 def build_system_prompt(
     challenge: dict | None,
     domain: dict | None,
     user_context: dict | None = None,
     reflection_context: dict | None = None,
+    profile_context: dict | None = None,
 ) -> str:
     sections = [BASE_PROMPT]
     if challenge:
@@ -84,6 +142,8 @@ def build_system_prompt(
         sections.append(_reflection_section(reflection_context))
     if user_context:
         sections.append(_user_progress_section(user_context))
+    if profile_context:
+        sections.append(_profile_section(profile_context))
     return "".join(sections)
 
 
@@ -94,6 +154,7 @@ async def get_coach_response(
     domain: dict | None,
     user_context: dict | None = None,
     reflection_context: dict | None = None,
+    profile_context: dict | None = None,
 ) -> dict:
     """Get a coach reply. user_message is required — synthetic openers
     (when the route wants the coach to open without a real user message)
@@ -103,6 +164,7 @@ async def get_coach_response(
         domain=domain,
         user_context=user_context,
         reflection_context=reflection_context,
+        profile_context=profile_context,
     )
     messages = [{"role": m["role"], "content": m["content"]} for m in conversation_history]
     messages.append({"role": "user", "content": user_message})

@@ -140,6 +140,33 @@ async def _build_user_context(user_id: str, db: AsyncSession) -> dict | None:
     }
 
 
+async def _build_profile_context(user_id: str, db: AsyncSession) -> dict | None:
+    """Personalization profile for the coach. Returns None when the user has
+    supplied nothing, so the prompt stays unchanged for un-onboarded users."""
+    user = await db.get(User, user_id)
+    if not user:
+        return None
+
+    triggers: list[str] = []
+    if user.top_triggers:
+        try:
+            decoded = json.loads(user.top_triggers)
+            if isinstance(decoded, list):
+                triggers = [t for t in decoded if isinstance(t, str)]
+        except (ValueError, TypeError):
+            triggers = []
+
+    if not any((user.focus_area, triggers, user.comfort_level, user.main_goal)):
+        return None
+
+    return {
+        "focus_area": user.focus_area,
+        "top_triggers": triggers,
+        "comfort_level": user.comfort_level,
+        "main_goal": user.main_goal,
+    }
+
+
 async def _resolve_completion(
     completion_id: str, user_id: str, db: AsyncSession
 ) -> tuple[ChallengeCompletion, Challenge]:
@@ -187,6 +214,7 @@ async def start_conversation(
     challenge_data: dict | None = _challenge_to_dict(challenge) if challenge else None
     domain_data: dict | None = DOMAIN_INFO.get(challenge.domain) if challenge else None
     user_context = await _build_user_context(user_id, db)
+    profile_context = await _build_profile_context(user_id, db)
 
     conversation = Conversation(
         user_id=user_id,
@@ -215,6 +243,7 @@ async def start_conversation(
             domain=domain_data,
             user_context=user_context,
             reflection_context=reflection_context,
+            profile_context=profile_context,
         )
     else:
         # Mode: synthetic opener (challenge prep or completion reflection).
@@ -233,6 +262,7 @@ async def start_conversation(
             domain=domain_data,
             user_context=user_context,
             reflection_context=reflection_context,
+            profile_context=profile_context,
         )
 
     coach_msg = Message(
@@ -287,6 +317,7 @@ async def send_message(
             domain_data = DOMAIN_INFO.get(challenge.domain)
 
     user_context = await _build_user_context(user_id, db)
+    profile_context = await _build_profile_context(user_id, db)
 
     history = [{"role": m.role, "content": m.content} for m in conversation.messages]
 
@@ -303,6 +334,7 @@ async def send_message(
         challenge=challenge_data,
         domain=domain_data,
         user_context=user_context,
+        profile_context=profile_context,
     )
 
     coach_msg = Message(

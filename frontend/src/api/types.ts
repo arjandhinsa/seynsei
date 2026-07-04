@@ -4,10 +4,38 @@ export interface TokenResponse {
   token_type: string
 }
 
+// Personalization codes shared by register, /auth/me, and the welcome flow.
+export type FocusArea = 'social' | 'dating' | 'both'
+export type TriggerCode =
+  | 'strangers'
+  | 'groups'
+  | 'authority'
+  | 'phone_calls'
+  | 'dating'
+  | 'being_watched'
+  | 'speaking_up'
+export type MainGoal =
+  | 'make_friends'
+  | 'confidence'
+  | 'dating'
+  | 'speak_up'
+  | 'less_avoidance'
+
+export interface Personalization {
+  focus_area?: FocusArea | null
+  top_triggers?: TriggerCode[] | null
+  comfort_level?: number | null
+  main_goal?: MainGoal | null
+}
+
 export interface RegisterRequest {
   email: string
   password: string
   display_name?: string | null
+  focus_area?: FocusArea | null
+  top_triggers?: TriggerCode[] | null
+  comfort_level?: number | null
+  main_goal?: MainGoal | null
 }
 
 export interface LoginRequest {
@@ -24,6 +52,11 @@ export interface UserResponse {
   email: string
   display_name: string | null
   equipped_avatar_id: string | null
+  focus_area: FocusArea | null
+  top_triggers: TriggerCode[] | null
+  comfort_level: number | null
+  main_goal: MainGoal | null
+  onboarding_completed: boolean
 }
 
 export type Domain = 'social' | 'dating'

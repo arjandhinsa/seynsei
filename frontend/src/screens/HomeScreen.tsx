@@ -8,6 +8,7 @@ import {
   stageLabelForLevel,
 } from '../components/progress'
 import { SoftCard } from '../components/SoftCard'
+import { BreathingLoader } from '../components/BreathingLoader'
 import { ChevronRight } from '../components/icons'
 import { useCurrentUser, useLogout } from '../api/hooks/useAuth'
 import { displayNameFor, avatarInitial } from '../lib/displayName'
@@ -41,7 +42,7 @@ export default function HomeScreen() {
       >
         <TopBar overview={overview.data} />
 
-        {overview.isLoading && <FullLoader />}
+        {overview.isLoading && <BreathingLoader fullScreen={false} />}
 
         {overview.isError && (
           <ErrorBlock onRetry={() => overview.refetch()} />
@@ -567,25 +568,6 @@ function RecentRow({
 // ─────────────────────────────────────────────────────────────────────
 // Loading + error blocks
 // ─────────────────────────────────────────────────────────────────────
-function FullLoader() {
-  return (
-    <div
-      style={{
-        minHeight: 360,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-2)',
-        fontFamily: 'var(--display)',
-        fontStyle: 'italic',
-        fontSize: 32,
-      }}
-    >
-      <span className="breathe">…</span>
-    </div>
-  )
-}
-
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
   return (
     <div style={{ marginTop: 24 }}>
@@ -599,7 +581,7 @@ function ErrorBlock({ onRetry }: { onRetry: () => void }) {
             marginBottom: 14,
           }}
         >
-          We couldn't load your progress. Pull to refresh.
+          Something didn't load. Pull a slow breath and try again.
         </div>
         <button
           onClick={onRetry}

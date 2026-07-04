@@ -55,6 +55,13 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+
+/* Native app (Capacitor) + notched devices: keep content clear of the
+   status bar / home indicator. env() resolves to 0 in normal browsers. */
+#root {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
 body {
   font-family: var(--body);
   font-weight: 400;
@@ -192,6 +199,36 @@ body {
   50%      { opacity: 0.85; transform: scale(1.04); }
 }
 .breathe { animation: breathe 4.5s ease-in-out infinite; }
+
+/* Breathing loader — soft circle swelling on a ~4s breath cycle, paired
+   with a slow glow. Used by BreathingLoader.tsx. */
+@keyframes breath-swell {
+  0%   { transform: scale(0.82); }
+  45%  { transform: scale(1.12); }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(0.82); }
+}
+.breath-swell { animation: breath-swell 8s ease-in-out infinite; }
+
+@keyframes breath-halo {
+  0%   { opacity: 0.25; transform: scale(0.9); }
+  50%  { opacity: 0.55; transform: scale(1.15); }
+  100% { opacity: 0.25; transform: scale(0.9); }
+}
+.breath-halo { animation: breath-halo 8s ease-in-out infinite; }
+
+@keyframes breath-msg {
+  0%   { opacity: 0; transform: translateY(4px); }
+  12%  { opacity: 1; transform: translateY(0); }
+  88%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Reduced-motion fallback for the loader — gentle opacity pulse, no scale. */
+@keyframes breath-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.9; }
+}
 
 @keyframes xp-fill {
   from { width: var(--from, 0%); }

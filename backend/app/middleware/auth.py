@@ -7,6 +7,11 @@ from app.services.auth_service import verify_token
 # If the header is missing, returns 403 automatically
 security = HTTPBearer()
 
+# Same header extraction, but auto_error=False so a missing/malformed
+# Authorization header yields None instead of raising. Used by public
+# endpoints that personalise for logged-in users but still work for guests.
+security_optional = HTTPBearer(auto_error=False)
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
@@ -29,4 +34,23 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    return user_id
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional),
+) -> str | None:
+    """Like get_current_user, but returns None instead of raising when the
+    Authorization header is missing or the token is invalid/expired.
+
+    Use on public endpoints that enrich their response for authenticated
+    users but must still serve anonymous callers.
+    """
+    if credentials is None:
+        return None
+
+    user_id = verify_token(credentials.credentials, expected_type="access")
+
+    # Invalid/expired token on an optional route -> treat as anonymous,
+    # don't 401. The route decides what a guest sees.
     return user_id

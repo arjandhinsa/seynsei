@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useChallengeById, useCompletions } from '../api/hooks/useChallenges'
+import { isAuthed } from '../api/client'
 import { SoftCard } from '../components/SoftCard'
 import { SoftButton } from '../components/SoftButton'
-import { ChevronLeft, ChevronRight, Lightbulb } from '../components/icons'
+import { BreathingLoader } from '../components/BreathingLoader'
+import { ChevronLeft, ChevronRight, Lightbulb, Lock } from '../components/icons'
 import { TierDot, tierColor } from '../components/progress'
 import type { Challenge, Completion } from '../api/types'
 
@@ -17,6 +19,7 @@ const TIER_NAMES: Record<number, string> = {
 
 export default function ChallengeDetailScreen() {
   const { id } = useParams<{ id: string }>()
+  const authed = isAuthed()
   const { data, isLoading, isError, notFound } = useChallengeById(id)
   const completions = useCompletions()
 
@@ -37,11 +40,11 @@ export default function ChallengeDetailScreen() {
       >
         <BackArrow domain={data?.domain} />
 
-        {isLoading && <DetailSkeleton />}
+        {isLoading && <BreathingLoader fullScreen={false} />}
 
         {!isLoading && (isError || notFound) && <NotFoundBlock />}
 
-        {data && <DetailBody challenge={data} stats={stats} />}
+        {data && <DetailBody challenge={data} stats={stats} authed={authed} />}
       </div>
     </div>
   )
@@ -83,9 +86,11 @@ interface DetailStats {
 function DetailBody({
   challenge,
   stats,
+  authed,
 }: {
   challenge: Challenge
   stats: DetailStats
+  authed: boolean
 }) {
   const navigate = useNavigate()
   const accent = tierColor(challenge.tier)
@@ -241,8 +246,8 @@ function DetailBody({
         </SoftCard>
       )}
 
-      {/* Per-user stats */}
-      {stats.count > 0 && (
+      {/* Per-user stats — authed only */}
+      {authed && stats.count > 0 && (
         <div
           style={{
             marginTop: 22,
@@ -261,72 +266,133 @@ function DetailBody({
         </div>
       )}
 
-      {/* Primary CTA */}
-      <div style={{ marginTop: 32 }}>
-        <SoftButton
-          primary
-          onClick={() => navigate(`/challenges/${challenge.id}/complete`)}
-        >
-          Ready
-        </SoftButton>
-        <div style={{ textAlign: 'center', marginTop: 14 }}>
-          <Link
-            to={`/sensei?challenge_id=${challenge.id}`}
-            className="tap"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 4px',
-              fontFamily: 'var(--display)',
-              fontStyle: 'italic',
-              fontSize: 13,
-              color: 'var(--ink-3)',
-              textDecoration: 'none',
-              letterSpacing: '0.005em',
-            }}
+      {/* Primary CTA — locked for guests */}
+      {authed ? (
+        <div style={{ marginTop: 32 }}>
+          <SoftButton
+            primary
+            onClick={() => navigate(`/challenges/${challenge.id}/complete`)}
           >
-            not ready? talk it through with Sensei
-            <ChevronRight size={11} />
-          </Link>
+            Ready
+          </SoftButton>
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <Link
+              to={`/sensei?challenge_id=${challenge.id}`}
+              className="tap"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 4px',
+                fontFamily: 'var(--display)',
+                fontStyle: 'italic',
+                fontSize: 13,
+                color: 'var(--ink-3)',
+                textDecoration: 'none',
+                letterSpacing: '0.005em',
+              }}
+            >
+              not ready? talk it through with Sensei
+              <ChevronRight size={11} />
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : (
+        <LockedCTA />
+      )}
     </div>
   )
 }
 
-function DetailSkeleton() {
+function LockedCTA() {
   return (
-    <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <SoftCard
+      padding={22}
+      radius="var(--r-lg)"
+      style={{
+        marginTop: 32,
+        textAlign: 'center',
+        borderColor: 'oklch(from var(--gold) l c h / 0.28)',
+        background:
+          'linear-gradient(160deg, oklch(from var(--gold) calc(l - 0.48) calc(c - 0.03) h / 0.18) 0%, var(--bg-2) 78%)',
+      }}
+    >
       <div
-        className="breathe"
+        aria-hidden
         style={{
-          height: 24,
-          width: '40%',
-          background: 'var(--bg-2)',
+          width: 46,
+          height: 46,
+          margin: '0 auto 14px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'oklch(from var(--gold) l c h / 0.10)',
+          border: '1px solid oklch(from var(--gold) l c h / 0.35)',
+          color: 'var(--gold-2)',
+        }}
+      >
+        <Lock size={20} color="var(--gold-2)" />
+      </div>
+      <div
+        className="display-italic"
+        style={{
+          fontSize: 18,
+          color: 'var(--ink)',
+          lineHeight: 1.3,
+          marginBottom: 6,
+        }}
+      >
+        Log in to begin this challenge
+      </div>
+      <div
+        style={{
+          fontFamily: 'var(--body)',
+          fontSize: 13,
+          color: 'var(--ink-2)',
+          lineHeight: 1.5,
+          marginBottom: 20,
+          maxWidth: 280,
+          margin: '0 auto 20px',
+        }}
+      >
+        An account saves your progress and lets Sensei coach you through it.
+      </div>
+      <Link
+        to="/auth/register"
+        className="tap"
+        style={{
+          display: 'block',
+          padding: '15px 18px',
           borderRadius: 'var(--r-pill)',
+          background:
+            'linear-gradient(180deg, oklch(from var(--gold) calc(l - 0.18) c h) 0%, oklch(from var(--gold) calc(l - 0.32) c h) 100%)',
+          border: '1px solid oklch(from var(--gold) l c h / 0.55)',
+          color: 'var(--ink)',
+          fontFamily: 'var(--display)',
+          fontSize: 15,
+          textDecoration: 'none',
+          boxShadow: '0 0 28px oklch(from var(--gold) l c h / 0.25)',
         }}
-      />
-      <div
-        className="breathe"
-        style={{
-          height: 32,
-          width: '85%',
-          background: 'var(--bg-2)',
-          borderRadius: 'var(--r-md)',
-        }}
-      />
-      <div
-        className="breathe"
-        style={{
-          height: 96,
-          width: '100%',
-          background: 'var(--bg-2)',
-          borderRadius: 'var(--r-md)',
-          opacity: 0.6,
-        }}
-      />
-    </div>
+      >
+        Create free account
+      </Link>
+      <div style={{ marginTop: 14 }}>
+        <Link
+          to="/auth/login"
+          className="tap"
+          style={{
+            fontFamily: 'var(--display)',
+            fontStyle: 'italic',
+            fontSize: 13.5,
+            color: 'var(--ink-3)',
+            textDecoration: 'none',
+          }}
+        >
+          Already have an account? Sign in
+        </Link>
+      </div>
+    </SoftCard>
   )
 }
 

@@ -17,6 +17,11 @@ export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY)
 }
 
+// Convenience predicate for guest-aware screens + query gating.
+export function isAuthed(): boolean {
+  return getAccessToken() !== null
+}
+
 export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY)
 }

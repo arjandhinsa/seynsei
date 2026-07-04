@@ -1,23 +1,56 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useLogin } from '../../api/hooks/useAuth'
-import { ApiError } from '../../api/client'
+import { useLogin, useUpdateMe } from '../../api/hooks/useAuth'
+import { ApiError, apiFetch } from '../../api/client'
 import { AuthLayout, SoftError } from '../../components/AuthLayout'
 import { SoftButton } from '../../components/SoftButton'
 import { SoftInput } from '../../components/SoftInput'
+import { clearWelcome, hasAnyAnswer, readWelcome } from '../../lib/personalization'
+import type { UserResponse } from '../../api/types'
 
 export default function LoginScreen() {
   const navigate = useNavigate()
   const login = useLogin()
+  const updateMe = useUpdateMe()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // After a successful login, if the account hasn't completed onboarding and
+  // this device carries unsaved welcome answers, sync them to the profile.
+  const syncWelcomeIfNeeded = async () => {
+    const welcome = readWelcome()
+    if (!hasAnyAnswer(welcome)) {
+      clearWelcome()
+      return
+    }
+    try {
+      const me = await apiFetch<UserResponse>('/auth/me')
+      if (!me.onboarding_completed) {
+        await updateMe.mutateAsync({
+          focus_area: welcome!.focus_area ?? null,
+          top_triggers: welcome!.top_triggers ?? null,
+          comfort_level: welcome!.comfort_level ?? null,
+          main_goal: welcome!.main_goal ?? null,
+        })
+      }
+    } catch {
+      // Non-fatal — the user can still edit their path from the profile.
+    } finally {
+      clearWelcome()
+    }
+  }
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     login.mutate(
       { email: email.trim(), password },
-      { onSuccess: () => navigate('/home', { replace: true }) },
+      {
+        onSuccess: async () => {
+          await syncWelcomeIfNeeded()
+          navigate('/home', { replace: true })
+        },
+      },
     )
   }
 
