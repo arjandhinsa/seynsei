@@ -21,9 +21,11 @@
   --rose:     oklch(74% 0.060 25);    /* warm dusty rose */
   --rose-2:   oklch(82% 0.045 25);
   --rose-ink: oklch(60% 0.065 25);
-  --gold:     oklch(80% 0.070 80);    /* antique gold */
-  --gold-2:   oklch(86% 0.055 80);
-  --gold-ink: oklch(64% 0.075 80);
+  /* Primary accent — brand teal, matched to the Seynsei mark (#407373).
+     Variable names kept as --gold so every existing usage follows along. */
+  --gold:     oklch(72% 0.075 195);
+  --gold-2:   oklch(82% 0.060 195);
+  --gold-ink: oklch(53% 0.055 198);   /* ≈ logo teal #407373 */
 
   /* Tier ramp — soft & washed */
   --t1: oklch(76% 0.055 145);   /* sage green     T1 */
