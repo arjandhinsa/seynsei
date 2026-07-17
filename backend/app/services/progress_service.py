@@ -48,6 +48,10 @@ class RecentCompletion(BaseModel):
     anxiety_before: int | None
     anxiety_after: int | None
     streak_day: int
+    # 'completed' | 'abandoned'. Abandoned attempts ARE shown in history
+    # (deliberate: avoidance patterns should be visible, not hidden) but the
+    # frontend renders them muted, with no XP badge.
+    status: str
 
 
 class UnlockedAchievement(BaseModel):
@@ -111,10 +115,13 @@ async def build_overview(
     else:
         is_active = (today - user.last_completion_date).days <= 1
 
-    # Total completions
+    # Total completions (successes only — abandons never count as progress)
     total_completions = (await session.execute(
         select(func.count(ChallengeCompletion.id))
-        .where(ChallengeCompletion.user_id == user.id)
+        .where(
+            ChallengeCompletion.user_id == user.id,
+            ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
+        )
     )).scalar() or 0
 
     # Per-domain breakdown
@@ -130,6 +137,7 @@ async def build_overview(
             .join(Challenge, Challenge.id == ChallengeCompletion.challenge_id)
             .where(
                 ChallengeCompletion.user_id == user.id,
+                ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
                 Challenge.domain == domain_key,
             )
         )).scalar() or 0
@@ -139,6 +147,7 @@ async def build_overview(
             .join(Challenge, Challenge.id == ChallengeCompletion.challenge_id)
             .where(
                 ChallengeCompletion.user_id == user.id,
+                ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
                 Challenge.domain == domain_key,
             )
         )).scalar() or 0
@@ -152,6 +161,7 @@ async def build_overview(
             .join(Challenge, Challenge.id == ChallengeCompletion.challenge_id)
             .where(
                 ChallengeCompletion.user_id == user.id,
+                ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
                 Challenge.domain == domain_key,
                 ChallengeCompletion.anxiety_before.is_not(None),
                 ChallengeCompletion.anxiety_after.is_not(None),
@@ -173,7 +183,8 @@ async def build_overview(
             avg_suds_reduction=avg_reduction,
         ))
 
-    # Last 10 completions, newest first, with challenge details
+    # Last 10 attempts (completed AND abandoned), newest first.
+    # No status filter here — history shows the honest record.
     recent_rows = (await session.execute(
         select(ChallengeCompletion, Challenge)
         .join(Challenge, Challenge.id == ChallengeCompletion.challenge_id)
@@ -194,6 +205,7 @@ async def build_overview(
             anxiety_before=comp.anxiety_before,
             anxiety_after=comp.anxiety_after,
             streak_day=comp.streak_day,
+            status=comp.status,
         )
         for comp, challenge in recent_rows
     ]

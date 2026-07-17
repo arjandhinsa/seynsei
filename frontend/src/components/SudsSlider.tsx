@@ -2,7 +2,12 @@ import { useCallback, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 
 interface SudsSliderProps {
-  value: number
+  /** null = user hasn't rated yet. The slider renders a ghosted, centred
+   *  thumb and no fill; the first touch/drag sets a real value. Forcing
+   *  the user to touch is deliberate: a pre-set default (previously 5)
+   *  made "didn't engage" indistinguishable from "genuinely rated 5",
+   *  which poisons the SUDS data the progression rules depend on. */
+  value: number | null
   onChange: (value: number) => void
   min?: number
   max?: number
@@ -23,7 +28,10 @@ export function SudsSlider({
   const trackRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const range = max - min
-  const fillPct = ((clamp(value, min, max) - min) / range) * 100
+  const isSet = value !== null
+  // Unset: park the ghost thumb at the midpoint so there's no directional bias.
+  const shown = isSet ? value : (min + max) / 2
+  const fillPct = ((clamp(shown, min, max) - min) / range) * 100
 
   const updateFromClientX = useCallback(
     (clientX: number) => {
@@ -72,7 +80,7 @@ export function SudsSlider({
             pointerEvents: 'none',
           }}
         >
-          {value}
+          {isSet ? value : '—'}
         </div>
       </div>
 
@@ -86,7 +94,8 @@ export function SudsSlider({
         role="slider"
         aria-valuemin={min}
         aria-valuemax={max}
-        aria-valuenow={value}
+        aria-valuenow={isSet ? value : undefined}
+        aria-valuetext={isSet ? String(value) : 'not yet rated'}
         style={{
           position: 'relative',
           height: 44,
@@ -110,7 +119,7 @@ export function SudsSlider({
         >
           <div
             style={{
-              width: `${fillPct}%`,
+              width: `${isSet ? fillPct : 0}%`,
               height: '100%',
               background:
                 'linear-gradient(90deg, oklch(from var(--teal) calc(l - 0.05) calc(c + 0.02) h) 0%, var(--gold) 100%)',
@@ -131,8 +140,10 @@ export function SudsSlider({
             borderRadius: '50%',
             background:
               'radial-gradient(circle at 30% 30%, oklch(from var(--gold) calc(l + 0.05) c h) 0%, oklch(from var(--gold) calc(l - 0.18) c h) 100%)',
-            boxShadow:
-              '0 0 0 1px oklch(from var(--gold) l c h / 0.6), 0 0 18px oklch(from var(--gold) l c h / 0.45)',
+            boxShadow: isSet
+              ? '0 0 0 1px oklch(from var(--gold) l c h / 0.6), 0 0 18px oklch(from var(--gold) l c h / 0.45)'
+              : '0 0 0 1px oklch(from var(--gold) l c h / 0.25)',
+            opacity: isSet ? 1 : 0.35,
             transition: dragging ? 'transform 0.05s ease' : 'all 0.15s ease',
             pointerEvents: 'none',
           }}

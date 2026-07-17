@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, ForeignKey, Text, Float
+from sqlalchemy import String, DateTime, ForeignKey, Text, Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -43,6 +43,16 @@ class RecommendationLog(Base):
 
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # --- decision-time snapshot (training features the DB can't rebuild) ---
+    # Completion history at rec time is reconstructable from timestamps;
+    # these fields are not: profile fields mutate without history, and the
+    # progression branch is internal state. Captured at log time so the
+    # Phase-4 pipeline knows exactly what the recommender saw.
+    progression: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    tier: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    comfort_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    focus_area: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     recommended_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

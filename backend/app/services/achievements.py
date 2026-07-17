@@ -45,20 +45,29 @@ async def build_user_stats(user: User, session: AsyncSession) -> UserStats:
     # 1. Total completions (across all challenges)
     total = (await session.execute(
         select(func.count(ChallengeCompletion.id))
-        .where(ChallengeCompletion.user_id == user.id)
+        .where(
+            ChallengeCompletion.user_id == user.id,
+            ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
+        )
     )).scalar() or 0
 
     # 2. Highest tier the user has ever completed
     max_tier = (await session.execute(
         select(func.max(Challenge.tier))
         .join(ChallengeCompletion, Challenge.id == ChallengeCompletion.challenge_id)
-        .where(ChallengeCompletion.user_id == user.id)
+        .where(
+            ChallengeCompletion.user_id == user.id,
+            ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
+        )
     )).scalar() or 0
 
     # 3. Completions per challenge_id — for challenge_repeat_count
     rows = (await session.execute(
         select(ChallengeCompletion.challenge_id, func.count(ChallengeCompletion.id))
-        .where(ChallengeCompletion.user_id == user.id)
+        .where(
+            ChallengeCompletion.user_id == user.id,
+            ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
+        )
         .group_by(ChallengeCompletion.challenge_id)
     )).all()
     per_challenge = {challenge_id: count for challenge_id, count in rows}
@@ -69,7 +78,10 @@ async def build_user_stats(user: User, session: AsyncSession) -> UserStats:
     rows = (await session.execute(
         select(Challenge.domain, func.count(ChallengeCompletion.id))
         .join(ChallengeCompletion, Challenge.id == ChallengeCompletion.challenge_id)
-        .where(ChallengeCompletion.user_id == user.id)
+        .where(
+            ChallengeCompletion.user_id == user.id,
+            ChallengeCompletion.status == ChallengeCompletion.STATUS_COMPLETED,
+        )
         .group_by(Challenge.domain)
     )).all()
     for domain, count in rows:

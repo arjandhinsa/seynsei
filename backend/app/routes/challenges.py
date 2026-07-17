@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models import Challenge, ChallengeCompletion, User
 from app.middleware.auth import get_current_user, get_current_user_optional
-from app.services.completion import record_completion
+from app.services.completion import record_abandon, record_completion
 
 
 router = APIRouter()
@@ -37,7 +37,7 @@ class CompletionRequest(BaseModel):
 
 
 class CompletionResponse(BaseModel):
-    """A historical completion — returned by GET /completions."""
+    """A historical attempt (completed or abandoned) — returned by GET /completions."""
     id: str
     challenge_id: str
     completed_at: str
@@ -46,6 +46,14 @@ class CompletionResponse(BaseModel):
     notes: str | None
     xp_earned: int
     streak_day: int
+    status: str  # 'completed' | 'abandoned'
+
+
+class AbandonRequest(BaseModel):
+    """Body for POST /{challenge_id}/abandon. Only the pre-rating: we never
+    ask for an 'after' rating from someone who just backed out."""
+    anxiety_before: int | None = Field(None, ge=1, le=10)
+    notes: str | None = None
 
 
 class AchievementInfo(BaseModel):
@@ -149,9 +157,54 @@ async def get_completions(
             notes=c.notes,
             xp_earned=c.xp_earned,
             streak_day=c.streak_day,
+            status=c.status,
         )
         for c in completions
     ]
+
+
+@router.post(
+    "/{challenge_id}/abandon",
+    response_model=CompletionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def abandon_challenge(
+    challenge_id: str,
+    body: AbandonRequest = AbandonRequest(),
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record an abandoned attempt. No XP, no streak, no achievements —
+    just the honest data point. The frontend confirms before calling this
+    (deliberate friction: an abandon should be a decision, not an accident).
+    """
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    challenge = await db.get(Challenge, challenge_id)
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+
+    attempt = await record_abandon(
+        user=user,
+        challenge=challenge,
+        anxiety_before=body.anxiety_before,
+        notes=body.notes,
+        session=db,
+    )
+
+    return CompletionResponse(
+        id=attempt.id,
+        challenge_id=attempt.challenge_id,
+        completed_at=attempt.completed_at.isoformat(),
+        anxiety_before=attempt.anxiety_before,
+        anxiety_after=attempt.anxiety_after,
+        notes=attempt.notes,
+        xp_earned=attempt.xp_earned,
+        streak_day=attempt.streak_day,
+        status=attempt.status,
+    )
 
 
 @router.post(
@@ -200,6 +253,7 @@ async def complete_challenge(
             notes=result.completion.notes,
             xp_earned=result.completion.xp_earned,
             streak_day=result.completion.streak_day,
+            status=result.completion.status,
         ),
         xp_earned=result.xp_earned,
         bonus_xp_from_achievements=result.bonus_xp_from_achievements,

@@ -493,6 +493,8 @@ function EmptyBlock() {
 function countByChallenge(completions: Completion[]): Map<string, number> {
   const out = new Map<string, number>()
   for (const c of completions) {
+    // abandoned attempts must not inflate the "done N times" badge
+    if (c.status !== 'completed') continue
     out.set(c.challenge_id, (out.get(c.challenge_id) ?? 0) + 1)
   }
   return out

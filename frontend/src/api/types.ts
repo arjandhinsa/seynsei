@@ -71,6 +71,9 @@ export interface DomainSummary {
   avg_suds_reduction: number | null
 }
 
+// 'abandoned' rows are shown in history but rendered muted, no XP.
+export type AttemptStatus = 'completed' | 'abandoned'
+
 export interface RecentCompletion {
   completion_id: string
   challenge_id: string
@@ -82,6 +85,7 @@ export interface RecentCompletion {
   anxiety_before: number | null
   anxiety_after: number | null
   streak_day: number
+  status: AttemptStatus
 }
 
 export interface UnlockedAchievement {
@@ -148,6 +152,12 @@ export interface Completion {
   notes: string | null
   xp_earned: number
   streak_day: number
+  status: AttemptStatus
+}
+
+export interface AbandonRequest {
+  anxiety_before: number | null
+  notes: string | null
 }
 
 export interface AchievementInfo {

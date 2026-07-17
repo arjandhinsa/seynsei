@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, getAccessToken } from '../client'
 import type {
+  AbandonRequest,
   Challenge,
   Completion,
   CompletionRequest,
@@ -58,6 +59,22 @@ export function useCreateCompletion(challengeId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['progress', 'overview'] })
       qc.invalidateQueries({ queryKey: ['progress', 'recommend'] })
+      qc.invalidateQueries({ queryKey: ['completions'] })
+    },
+  })
+}
+
+export function useAbandonChallenge(challengeId: string) {
+  const qc = useQueryClient()
+  return useMutation<Completion, Error, AbandonRequest>({
+    mutationFn: (body) =>
+      apiFetch<Completion>(
+        `/challenges/${challengeId}/abandon`,
+        { method: 'POST', body: JSON.stringify(body) },
+      ),
+    onSuccess: () => {
+      // No XP/streak/achievements change, but history + future progression do.
+      qc.invalidateQueries({ queryKey: ['progress', 'overview'] })
       qc.invalidateQueries({ queryKey: ['completions'] })
     },
   })

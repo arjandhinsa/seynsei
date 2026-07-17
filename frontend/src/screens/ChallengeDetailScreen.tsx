@@ -446,6 +446,9 @@ function deriveStats(completions: Completion[], id: string | undefined): DetailS
   let bestReduction: number | null = null
   for (const c of completions) {
     if (c.challenge_id !== id) continue
+    // /completions now returns abandoned attempts too — they must not
+    // inflate the "done N times" count or the best-reduction stat.
+    if (c.status !== 'completed') continue
     count += 1
     if (c.anxiety_before != null && c.anxiety_after != null) {
       const reduction = c.anxiety_before - c.anxiety_after

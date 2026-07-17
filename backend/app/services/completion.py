@@ -134,3 +134,40 @@ async def record_completion(
         is_new_personal_best_streak=streak_update.is_new_personal_best,
         newly_unlocked=newly_unlocked,
     )
+
+
+async def record_abandon(
+    *,
+    user: User,
+    challenge: Challenge,
+    anxiety_before: int | None,
+    notes: str | None,
+    session: AsyncSession,
+) -> ChallengeCompletion:
+    """Record an abandoned attempt.
+
+    Deliberately NOT routed through record_completion: an abandon touches
+    none of the gamified state (no XP, no streak, no achievements, no
+    user-row updates), so it gets its own minimal write path instead of
+    an if-branch through the eight-step completion orchestration.
+
+    The row still carries anxiety_before — an abandon with a high pre-rating
+    is the strongest step-down signal the progression rules have.
+    anxiety_after is intentionally not collected: the user has just backed
+    out of an exposure; demanding a second rating at that moment is both
+    poor UX and clinically tone-deaf.
+    """
+    attempt = ChallengeCompletion(
+        user_id=user.id,
+        challenge_id=challenge.id,
+        anxiety_before=anxiety_before,
+        anxiety_after=None,
+        notes=notes,
+        xp_earned=0,
+        streak_day=0,
+        status=ChallengeCompletion.STATUS_ABANDONED,
+    )
+    session.add(attempt)
+    await session.commit()
+    await session.refresh(attempt)
+    return attempt

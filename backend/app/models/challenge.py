@@ -84,10 +84,18 @@ class Challenge(Base):
     completions = relationship("ChallengeCompletion", back_populates="challenge")
 
 
-# Records when a specific user completes a specific challenge
-# "junction table" for the many-to-many relationship between users and challenges.
+# Records every ATTEMPT a user makes at a challenge — completed or abandoned.
+# (Historically completions-only; the status column turned it into an attempt
+# log. Any query that means "successes" MUST filter status == "completed".)
 class ChallengeCompletion(Base):
     __tablename__ = "challenge_completions"
+
+    # 'completed' | 'abandoned'. Free string (matches the strategy-column
+    # convention in recommendation_logs) so new outcomes don't need a
+    # migration. Abandoned rows carry anxiety_before but usually no
+    # anxiety_after; they award no XP and don't advance streaks.
+    STATUS_COMPLETED = "completed"
+    STATUS_ABANDONED = "abandoned"
 
     id: Mapped[str] = mapped_column(
         String(36),
@@ -111,6 +119,14 @@ class ChallengeCompletion(Base):
     completed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default=STATUS_COMPLETED,
+        server_default=STATUS_COMPLETED,
+        index=False,  # covered by composite (user_id, status) index in migration
     )
 
     #Xp awarded, including any streak multipliers or bonuses.

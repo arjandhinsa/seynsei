@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
+  useAbandonChallenge,
   useChallengeById,
   useCreateCompletion,
 } from '../api/hooks/useChallenges'
@@ -24,10 +25,13 @@ function Wizard({ challengeId }: { challengeId: string }) {
   const navigate = useNavigate()
   const challenge = useChallengeById(challengeId)
   const create = useCreateCompletion(challengeId)
+  const abandon = useAbandonChallenge(challengeId)
 
   const [step, setStep] = useState<Step>(1)
-  const [before, setBefore] = useState(5)
-  const [after, setAfter] = useState(5)
+  // null until the user touches the slider — an untouched slider must not
+  // produce a rating (see SudsSlider). Continue/Save are gated on non-null.
+  const [before, setBefore] = useState<number | null>(null)
+  const [after, setAfter] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
 
   const submit = async () => {
@@ -40,6 +44,18 @@ function Wizard({ challengeId }: { challengeId: string }) {
       navigate('/celebration', { state: { result }, replace: true })
     } catch {
       // shown via create.isError below
+    }
+  }
+
+  // Abandoning still records the attempt (with the pre-rating — a high
+  // anxiety_before on an abandon is exactly what the progression rules
+  // need to see). No XP, no streak; just the honest data point.
+  const abandonAttempt = async () => {
+    try {
+      await abandon.mutateAsync({ anxiety_before: before, notes: null })
+      navigate(`/challenges/${challengeId}`, { replace: true })
+    } catch {
+      // non-blocking: if it fails, the user can just leave via Back
     }
   }
 
@@ -95,6 +111,8 @@ function Wizard({ challengeId }: { challengeId: string }) {
             key="step-2"
             challengeName={challenge.data?.name}
             onConfirm={() => setStep(3)}
+            onAbandon={abandonAttempt}
+            abandoning={abandon.isPending}
           />
         )}
 
@@ -165,7 +183,7 @@ function StepBefore({
   onChange,
   onContinue,
 }: {
-  value: number
+  value: number | null
   onChange: (v: number) => void
   onContinue: () => void
 }) {
@@ -215,9 +233,10 @@ function StepBefore({
       <SoftButton
         primary
         onClick={onContinue}
+        disabled={value === null}
         style={{ marginTop: 16, fontStyle: 'italic' }}
       >
-        Continue
+        {value === null ? 'Slide to rate first' : 'Continue'}
       </SoftButton>
     </div>
   )
@@ -229,12 +248,20 @@ function StepBefore({
 function StepDoIt({
   challengeName,
   onConfirm,
+  onAbandon,
+  abandoning,
 }: {
   challengeName: string | undefined
   onConfirm: () => void
+  onAbandon: () => void
+  abandoning: boolean
 }) {
   const [armed, setArmed] = useState(false)
   const armTimer = useRef<number | null>(null)
+  // Two-tap confirm on abandoning too — same logic as "I did it", opposite
+  // direction. The friction makes it a decision, the wording keeps it kind.
+  const [abandonArmed, setAbandonArmed] = useState(false)
+  const abandonTimer = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
@@ -242,8 +269,29 @@ function StepDoIt({
         window.clearTimeout(armTimer.current)
         armTimer.current = null
       }
+      if (abandonTimer.current) {
+        window.clearTimeout(abandonTimer.current)
+        abandonTimer.current = null
+      }
     }
   }, [])
+
+  const onAbandonTap = () => {
+    if (abandonArmed) {
+      if (abandonTimer.current) {
+        window.clearTimeout(abandonTimer.current)
+        abandonTimer.current = null
+      }
+      setAbandonArmed(false)
+      onAbandon()
+      return
+    }
+    setAbandonArmed(true)
+    abandonTimer.current = window.setTimeout(() => {
+      setAbandonArmed(false)
+      abandonTimer.current = null
+    }, ARM_TIMEOUT_MS)
+  }
 
   const onTap = () => {
     if (armed) {
@@ -346,6 +394,30 @@ function StepDoIt({
       >
         {armed ? 'tap again to confirm' : 'I did it'}
       </button>
+
+      <button
+        onClick={onAbandonTap}
+        disabled={abandoning}
+        className="tap"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          padding: '10px 0 0',
+          fontFamily: 'var(--body)',
+          fontSize: 13,
+          color: abandonArmed ? 'var(--ink-2)' : 'var(--ink-3)',
+          textDecoration: abandonArmed ? 'none' : 'underline',
+          textUnderlineOffset: 3,
+          cursor: 'pointer',
+          transition: 'color 0.15s ease',
+        }}
+      >
+        {abandoning
+          ? 'Noting it…'
+          : abandonArmed
+            ? "That's okay — tap again to set this one aside. You can come back to it."
+            : "I can't do this one right now"}
+      </button>
     </div>
   )
 }
@@ -363,8 +435,8 @@ function StepAfter({
   saving,
   errorMessage,
 }: {
-  before: number
-  value: number
+  before: number | null
+  value: number | null
   onChange: (v: number) => void
   notes: string
   onNotesChange: (n: string) => void
@@ -399,7 +471,8 @@ function StepAfter({
           }}
         >
           Now that it's done, how anxious do you feel right now? Not about
-          doing it again, just in this moment. You went in at {before}.
+          doing it again, just in this moment.
+          {before !== null && <> You went in at {before}.</>}
         </p>
       </header>
 
@@ -437,10 +510,10 @@ function StepAfter({
       <SoftButton
         primary
         onClick={onSave}
-        disabled={saving}
+        disabled={saving || value === null}
         style={{ fontStyle: 'italic' }}
       >
-        {saving ? 'Saving…' : 'Save'}
+        {saving ? 'Saving…' : value === null ? 'Slide to rate first' : 'Save'}
       </SoftButton>
     </div>
   )

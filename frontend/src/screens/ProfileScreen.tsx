@@ -753,6 +753,7 @@ function RecentRow({
   completion: RecentCompletion
   divider: boolean
 }) {
+  const abandoned = completion.status === 'abandoned'
   return (
     <div
       style={{
@@ -761,6 +762,7 @@ function RecentRow({
         gap: 12,
         padding: '12px 14px',
         borderTop: divider ? '1px solid var(--line)' : 'none',
+        opacity: abandoned ? 0.55 : 1,
       }}
     >
       <TierDot tier={completion.tier} size={10} />
@@ -769,7 +771,7 @@ function RecentRow({
           flex: 1,
           minWidth: 0,
           fontSize: 13.5,
-          color: 'var(--ink)',
+          color: abandoned ? 'var(--ink-2)' : 'var(--ink)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -787,17 +789,30 @@ function RecentRow({
       >
         {timeAgo(completion.completed_at)}
       </div>
-      <div
-        className="tnum"
-        style={{
-          fontSize: 11.5,
-          color: 'var(--gold-2)',
-          flexShrink: 0,
-          fontWeight: 600,
-        }}
-      >
-        +{completion.xp_earned}
-      </div>
+      {abandoned ? (
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--ink-3)',
+            flexShrink: 0,
+            fontStyle: 'italic',
+          }}
+        >
+          set aside
+        </div>
+      ) : (
+        <div
+          className="tnum"
+          style={{
+            fontSize: 11.5,
+            color: 'var(--gold-2)',
+            flexShrink: 0,
+            fontWeight: 600,
+          }}
+        >
+          +{completion.xp_earned}
+        </div>
+      )}
     </div>
   )
 }
