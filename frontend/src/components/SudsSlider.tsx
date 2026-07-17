@@ -13,20 +13,19 @@ interface SudsSliderProps {
   max?: number
 }
 
-// 'moderate' anchors at 5.5 — the true centre of a 1-10 scale (which has
-// no middle integer). It's a region label, not a tick, so the half-value
-// is fine; anchoring it at 5 left it visibly off-centre under the unset
-// ghost thumb, which sits at the honest midpoint.
+// 0-10 is the standard clinical SUDS scale (0 = no distress), and it has
+// a true integer centre: 5. Ghost thumb, 'moderate', and a selected 5
+// all align at the midpoint — the 1-10 version had no middle integer.
 const ANCHORS = [
-  { v: 1, label: 'calm' },
-  { v: 5.5, label: 'moderate' },
+  { v: 0, label: 'calm' },
+  { v: 5, label: 'moderate' },
   { v: 10, label: 'intense' },
 ]
 
 export function SudsSlider({
   value,
   onChange,
-  min = 1,
+  min = 0,
   max = 10,
 }: SudsSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null)

@@ -149,7 +149,8 @@ class ChallengeCompletion(Base):
     )
 
     # SUDS (Subjective Units of Distress) ratings
-    # Scale: 1 (barely noticeable) → 10 (worst anxiety you can imagine)
+    # Scale: 0 (no distress) → 10 (worst anxiety you can imagine)
+    # 0-10 per the standard clinical SUDS convention (Wolpe)
     # Users rate before and after attempting the challenge
     # Tracking both lets them see their anxiety dropping over time
 

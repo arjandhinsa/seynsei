@@ -29,10 +29,11 @@ class ChallengeResponse(BaseModel):
     cognitive_distortion_challenged: str | None
 
 
-#changed to 1-10 anxiety scale
+# 0-10 SUDS anxiety scale
 class CompletionRequest(BaseModel):
-    anxiety_before: int | None = Field(None, ge=1, le=10)
-    anxiety_after: int | None = Field(None, ge=1, le=10)
+    # 0-10: standard clinical SUDS scale (0 = no distress)
+    anxiety_before: int | None = Field(None, ge=0, le=10)
+    anxiety_after: int | None = Field(None, ge=0, le=10)
     notes: str | None = None
 
 
@@ -52,7 +53,7 @@ class CompletionResponse(BaseModel):
 class AbandonRequest(BaseModel):
     """Body for POST /{challenge_id}/abandon. Only the pre-rating: we never
     ask for an 'after' rating from someone who just backed out."""
-    anxiety_before: int | None = Field(None, ge=1, le=10)
+    anxiety_before: int | None = Field(None, ge=0, le=10)
     notes: str | None = None
 
 

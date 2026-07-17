@@ -213,8 +213,8 @@ function StepBefore({
             lineHeight: 1.5,
           }}
         >
-          How anxious does doing this make you feel right now? 1 is barely
-          a flicker, 10 is the most anxious you get.
+          How anxious does doing this make you feel right now? 0 is
+          completely calm, 10 is the most anxious you get.
         </p>
       </header>
       <SudsSlider value={value} onChange={onChange} />

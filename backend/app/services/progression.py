@@ -12,7 +12,7 @@ The spec (each threshold is a named constant; rationale inline):
 
   WIN        completed AND (before - after) >= 2      within-session habituation.
                                                       >= 2 because a 1-point move
-                                                      on a 1-10 integer scale is
+                                                      on a 0-10 integer scale is
                                                       rating noise.
   TOO_EASY   completed AND before <= 3                the user was never really
                                                       anxious: no learning is
