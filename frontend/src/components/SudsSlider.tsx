@@ -13,9 +13,13 @@ interface SudsSliderProps {
   max?: number
 }
 
+// 'moderate' anchors at 5.5 — the true centre of a 1-10 scale (which has
+// no middle integer). It's a region label, not a tick, so the half-value
+// is fine; anchoring it at 5 left it visibly off-centre under the unset
+// ghost thumb, which sits at the honest midpoint.
 const ANCHORS = [
   { v: 1, label: 'calm' },
-  { v: 5, label: 'moderate' },
+  { v: 5.5, label: 'moderate' },
   { v: 10, label: 'intense' },
 ]
 
